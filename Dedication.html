@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>语音转文本</title>
+</head>
+<body>
+    <h1>语音转文本</h1>
+    <button id="startButton">开始录音</button>
+    <button id="stopButton" style="display:none;">停止录音</button>
+    <div id="transcript"></div>
+
+    <script>
+        const startButton = document.getElementById("startButton");
+        const stopButton = document.getElementById("stopButton");
+        const transcript = document.getElementById("transcript");
+
+        const recognition = new webkitSpeechRecognition(); // 使用Web Speech API
+
+        recognition.continuous = true; // 持续识别语音
+        recognition.interimResults = true; // 实时获取中间结果
+
+        recognition.onresult = function(event) {
+            const result = event.results[event.results.length - 1];
+            const text = result[0].transcript;
+            transcript.textContent = text;
+        };
+
+        recognition.onend = function() {
+            startButton.style display = "inline";
+            stopButton.style display = "none";
+        };
+
+        startButton.addEventListener("click", function() {
+            recognition.start();
+            startButton.style.display = "none";
+            stopButton.style.display = "inline";
+        });
+
+        stopButton.addEventListener("click", function() {
+            recognition.stop();
+            startButton.style.display = "inline";
+            stopButton.style.display = "none";
+        });
+    </script>
+</body>
+</html>
