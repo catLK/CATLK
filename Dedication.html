@@ -27,13 +27,58 @@
 </head>
 <body>
     <h1>录音功能页面</h1>
-    <p>点击下面按钮开始录音：</p>
-    <button id="recordButton" onclick="startRecording()">开始录音</button>
+    <p>点击下面按钮开始/停止录音：</p>
+    <button id="recordButton">开始录音</button>
 
     <script>
+        let mediaRecorder;
+        let chunks = [];
+        let isRecording = false;
+
+        document.getElementById('recordButton').addEventListener('click', toggleRecording);
+
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
         function startRecording() {
-            // 在这里添加调用麦克风录音的功能，可以使用Web API或其他JavaScript库
-            alert('调用麦克风开始录音！');
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = function(e) {
+                        if (e.data.size > 0) {
+                            chunks.push(e.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = function() {
+                        let blob = new Blob(chunks, { type: 'audio/wav' });
+                        let audioURL = URL.createObjectURL(blob);
+                        let audio = new Audio(audioURL);
+                        audio.controls = true;
+                        document.body.appendChild(audio);
+                        isRecording = false;
+                        document.getElementById('recordButton').textContent = '开始录音';
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('recordButton').textContent = '停止录音';
+                })
+                .catch(function(error) {
+                    console.error('获取麦克风失败:', error);
+                });
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
         }
     </script>
 </body>
