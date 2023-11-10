@@ -1,45 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Audio Recorder for iOS</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>录音功能页面</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1, p {
+            text-align: center;
+        }
+
+        #recordButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+    <h1>录音功能页面</h1>
+    <p>点击下面按钮开始录音：</p>
+    <button id="recordButton" onclick="startRecording()">开始录音</button>
 
-<button id="startRecord">Start Recording</button>
-<button id="stopRecord" disabled>Stop Recording</button>
-<audio id="audioPlayback" controls></audio>
-
-<script>
-  let mediaRecorder;
-  let audioChunks = [];
-
-  document.getElementById("startRecord").addEventListener("click", function() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = function(event) {
-          audioChunks.push(event.data);
-        };
-        mediaRecorder.onstop = function() {
-          const audioBlob = new Blob(audioChunks);
-          const audioUrl = URL.createObjectURL(audioBlob);
-          document.getElementById("audioPlayback").src = audioUrl;
-        };
-        mediaRecorder.start();
-        document.getElementById("startRecord").disabled = true;
-        document.getElementById("stopRecord").disabled = false;
-        audioChunks = [];
-      })
-      .catch(error => console.error(error));
-  });
-
-  document.getElementById("stopRecord").addEventListener("click", function() {
-    mediaRecorder.stop();
-    document.getElementById("startRecord").disabled = false;
-    document.getElementById("stopRecord").disabled = true;
-  });
-</script>
-
+    <script>
+        function startRecording() {
+            // 在这里添加调用麦克风录音的功能，可以使用Web API或其他JavaScript库
+            alert('调用麦克风开始录音！');
+        }
+    </script>
 </body>
 </html>
