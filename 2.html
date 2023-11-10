@@ -14,6 +14,7 @@ let audioContext;
 let mediaRecorder;
 let audioStream;
 let allTranscripts = [];
+let isRecording = false; // 新增标志，用于记录是否正在录音
 
 const transcriptDiv = document.getElementById('transcript');
 
@@ -37,7 +38,7 @@ function createRecognition() {
 
     recognition.onend = () => {
         // 处理结束后的操作
-        if (mediaRecorder.state === 'recording') {
+        if (isRecording) {
             recognition.start(); // 重新启动识别
         }
     };
@@ -63,27 +64,32 @@ document.getElementById('btn-start-recording').addEventListener('click', async (
     const recognition = createRecognition();
     recognition.start();
 
+    isRecording = true; // 设置正在录音标志
+
     document.getElementById('btn-start-recording').disabled = true;
     document.getElementById('btn-stop-recording').disabled = false;
 });
 
 document.getElementById('btn-stop-recording').addEventListener('click', () => {
-    mediaRecorder.stop();
-    audioStream.getTracks().forEach(track => track.stop());
-    audioContext.close();
+    if (isRecording) {
+        mediaRecorder.stop();
+        audioStream.getTracks().forEach(track => track.stop());
+        audioContext.close();
+        isRecording = false; // 设置录音结束标志
 
-    // 将当前转录文本添加到数组中
-    const currentTranscript = transcriptDiv.textContent.trim();
-    allTranscripts[allTranscripts.length - 1].push(currentTranscript);
+        // 将当前转录文本添加到数组中
+        const currentTranscript = transcriptDiv.textContent.trim();
+        allTranscripts[allTranscripts.length - 1].push(currentTranscript);
 
-    // 输出所有录音的文本
-    allTranscripts.forEach((transcripts, index) => {
-        const transcriptText = transcripts.join('\n');
-        console.log(`录音${index + 1}:\n${transcriptText}`);
-    });
+        // 输出所有录音的文本
+        allTranscripts.forEach((transcripts, index) => {
+            const transcriptText = transcripts.join('\n');
+            console.log(`录音${index + 1}:\n${transcriptText}`);
+        });
 
-    document.getElementById('btn-start-recording').disabled = false;
-    document.getElementById('btn-stop-recording').disabled = true;
+        document.getElementById('btn-start-recording').disabled = false;
+        document.getElementById('btn-stop-recording').disabled = true;
+    }
 });
 </script>
 </body>
