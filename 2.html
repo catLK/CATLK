@@ -1,68 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>语音转文本</title>
+<meta charset="UTF-8">
+<title>改进的语音转文本记录器</title>
 </head>
 <body>
-    <button id="btn-start-recording">开始录音</button>
-    <button id="btn-stop-recording" disabled>停止录音</button>
-    <audio controls></audio>
-    <p id="transcript">转录文本将出现在这里</p>
-    <script>
-        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let mediaRecorder;
-        let audioStream;
-        let audioChunks = [];
-        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'cmn-Hans-CN'; // 使用普通话
-        recognition.continuous = true;
+<button id="btn-start-recording">开始录音</button>
+<button id="btn-stop-recording" disabled>停止录音</button>
+<audio controls></audio>
+<div id="transcript">转录文本将出现在这里：</div>
+<script>
+let audioContext;
+let mediaRecorder;
+let audioStream;
+let transcriptCount = 1;
+let allTranscripts = [];
 
-        // 开始录音按钮
-        document.getElementById('btn-start-recording').addEventListener('click', async () => {
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const input = audioContext.createMediaStreamSource(audioStream);
-            mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.start();
-            
-            mediaRecorder.addEventListener('dataavailable', event => {
-                audioChunks.push(event.data);
-            });
+const transcriptDiv = document.getElementById('transcript');
 
-            // 开始语音识别
-            recognition.start();
+function createRecognition() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'cmn-Hans-CN'; // 使用普通话
+    recognition.continuous = true;
+    recognition.interimResults = true; // 开启中间结果
 
-            document.getElementById('btn-start-recording').disabled = true;
-            document.getElementById('btn-stop-recording').disabled = false;
-        });
+    recognition.onresult = event => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+        }
+        transcriptDiv.textContent = `${transcriptCount}: ${transcript}`; // 更新转录文本
+    };
 
-        // 停止录音按钮
-        document.getElementById('btn-stop-recording').addEventListener('click', () => {
-            mediaRecorder.stop();
-            audioStream.getTracks().forEach(track => track.stop());
-            audioContext.close();
+    recognition.onerror = event => {
+        console.error('语音识别错误:', event.error);
+    };
 
-            // 停止语音识别
-            recognition.stop();
+    recognition.onend = () => {
+        // 处理结束后的操作
+        transcriptCount++;
+        recognition.start(); // 重新启动识别
+    };
 
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            document.querySelector('audio').src = audioUrl;
+    return recognition;
+}
 
-            document.getElementById('btn-start-recording').disabled = false;
-            document.getElementById('btn-stop-recording').disabled = true;
-            audioChunks = [];
-        });
+document.getElementById('btn-start-recording').addEventListener('click', async () => {
+    // 清空之前的转录文本
+    transcriptDiv.textContent = '';
+    transcriptCount = 1;
+    allTranscripts = [];
 
-        // 将语音转换为文本
-        recognition.onresult = function(event) {
-            const transcript = event.results[event.resultIndex][0].transcript;
-            document.getElementById('transcript').textContent += transcript;
-        };
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const input = audioContext.createMediaStreamSource(audioStream);
+    mediaRecorder = new MediaRecorder(audioStream);
+    mediaRecorder.start();
+    
+    mediaRecorder.ondataavailable = event => {
+        const audioBlob = new Blob([event.data], { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        document.querySelector('audio').src = audioUrl;
+    };
 
-        // 语音识别错误处理
-        recognition.onerror = function(event) {
-            console.error('语音识别错误:', event.error);
-        };
-    </script>
+    const recognition = createRecognition();
+    recognition.start();
+
+    document.getElementById('btn-start-recording').disabled = true;
+    document.getElementById('btn-stop-recording').disabled = false;
+});
+
+document.getElementById('btn-stop-recording').addEventListener('click', () => {
+    mediaRecorder.stop();
+    audioStream.getTracks().forEach(track => track.stop());
+    audioContext.close();
+
+    // 将当前转录文本添加到数组中
+    const currentTranscript = transcriptDiv.textContent.trim();
+    allTranscripts.push(currentTranscript);
+
+    // 在下一次点击开始录音时，自动换行记录第二次的转录内容
+    transcriptDiv.textContent = '';
+
+    // 输出所有录音的文本
+    allTranscripts.forEach((transcript, index) => {
+        console.log(`录音${index + 1}: ${transcript}`);
+    });
+
+    document.getElementById('btn-start-recording').disabled = false;
+    document.getElementById('btn-stop-recording').disabled = true;
+});
+</script>
 </body>
 </html>
