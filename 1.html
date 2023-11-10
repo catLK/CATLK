@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,21 +19,27 @@
             text-align: center;
         }
 
-        #startButton {
+        .button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <h1>你好初学者</h1>
     <p>欢迎来到我的网页！</p>
-    <button id="startButton" onclick="startRecording()">请点击此处开始</button>
+    <button class="button" onclick="startRecording()">请点击此处开始</button>
+    <button class="button" onclick="startCustomPage()">开始尝试自定义网页</button>
 
     <script>
         function startRecording() {
-            window.location.href = 'Dedication.html';
+            window.location.href = 'record.html';
+        }
+
+        function startCustomPage() {
+            window.location.href = 'custom.html';
         }
     </script>
 </body>
