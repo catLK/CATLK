@@ -13,7 +13,6 @@
 let audioContext;
 let mediaRecorder;
 let audioStream;
-let transcriptCount = 1;
 let allTranscripts = [];
 
 const transcriptDiv = document.getElementById('transcript');
@@ -38,25 +37,23 @@ function createRecognition() {
 
     recognition.onend = () => {
         // 处理结束后的操作
-        transcriptCount++;
-        recognition.start(); // 重新启动识别
+        if (mediaRecorder.state === 'recording') {
+            recognition.start(); // 重新启动识别
+        }
     };
 
     return recognition;
 }
 
 document.getElementById('btn-start-recording').addEventListener('click', async () => {
-    // 清空之前的转录文本
-    transcriptDiv.textContent = '';
-    transcriptCount = 1;
-    allTranscripts = [];
-
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const input = audioContext.createMediaStreamSource(audioStream);
     mediaRecorder = new MediaRecorder(audioStream);
     mediaRecorder.start();
-    
+
+    allTranscripts.push([]); // 创建一个新的数组来存储当前录音的文本
+
     mediaRecorder.ondataavailable = event => {
         const audioBlob = new Blob([event.data], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -77,14 +74,12 @@ document.getElementById('btn-stop-recording').addEventListener('click', () => {
 
     // 将当前转录文本添加到数组中
     const currentTranscript = transcriptDiv.textContent.trim();
-    allTranscripts.push(currentTranscript);
-
-    // 在下一次点击开始录音时，自动换行记录第二次的转录内容
-    transcriptDiv.textContent = '';
+    allTranscripts[allTranscripts.length - 1].push(currentTranscript);
 
     // 输出所有录音的文本
-    allTranscripts.forEach((transcript, index) => {
-        console.log(`录音${index + 1}: ${transcript}`);
+    allTranscripts.forEach((transcripts, index) => {
+        const transcriptText = transcripts.join('\n');
+        console.log(`录音${index + 1}:\n${transcriptText}`);
     });
 
     document.getElementById('btn-start-recording').disabled = false;
