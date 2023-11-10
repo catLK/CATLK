@@ -1,46 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Web Audio API Recorder</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你好初学者</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1, p {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <button id="btn-start-recording">Start Recording</button>
-    <button id="btn-stop-recording" disabled>Stop Recording</button>
-    <audio controls></audio>
-    <script>
-        let audioContext;
-        let mediaRecorder;
-        let audioStream;
-        let audioChunks = [];
-
-        document.getElementById('btn-start-recording').addEventListener('click', async () => {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const input = audioContext.createMediaStreamSource(audioStream);
-            mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.start();
-            
-            mediaRecorder.addEventListener('dataavailable', event => {
-                audioChunks.push(event.data);
-            });
-
-            document.getElementById('btn-start-recording').disabled = true;
-            document.getElementById('btn-stop-recording').disabled = false;
-        });
-
-        document.getElementById('btn-stop-recording').addEventListener('click', () => {
-            mediaRecorder.stop();
-            audioStream.getTracks().forEach(track => track.stop());
-            audioContext.close();
-
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            document.querySelector('audio').src = audioUrl;
-
-            document.getElementById('btn-start-recording').disabled = false;
-            document.getElementById('btn-stop-recording').disabled = true;
-            audioChunks = [];
-        });
-    </script>
+    <h1>你好初学者</h1>
+    <p>欢迎来到我的网页！</p>
 </body>
 </html>
