@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>改进的语音转文本记录器</title>
+</head>
+<body>
+<button id="btn-start-recording">开始录音</button>
+<button id="btn-stop-recording" disabled>停止录音</button>
+<audio controls></audio>
+<p id="transcript">转录文本将出现在这里：</p>
+<script>
+let audioContext;
+let mediaRecorder;
+let audioStream;
+let recognition;
+let transcriptCount = 0;
+
+document.getElementById('btn-start-recording').addEventListener('click', async () => {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(audioStream);
+    mediaRecorder.start();
+    
+    mediaRecorder.ondataavailable = event => {
+        const audioBlob = new Blob([event.data], { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        document.querySelector('audio').src = audioUrl;
+    };
+
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'cmn-Hans-CN'; // 使用普通话
+    recognition.continuous = true;
+    recognition.start();
+
+    document.getElementById('btn-start-recording').disabled = true;
+    document.getElementById('btn-stop-recording').disabled = false;
+});
+
+document.getElementById('btn-stop-recording').addEventListener('click', () => {
+    mediaRecorder.stop();
+    audioStream.getTracks().forEach(track => track.stop());
+    audioContext.close();
+    recognition.stop();
+
+    document.getElementById('btn-start-recording').disabled = false;
+    document.getElementById('btn-stop-recording').disabled = true;
+});
+
+recognition.onresult = event => {
+    transcriptCount++;
+    const transcript = event.results[event.resultIndex][0].transcript;
+    const p = document.createElement('p');
+    p.textContent = `${transcriptCount}: ${transcript}`;
+    document.getElementById('transcript').appendChild(p);
+};
+
+recognition.onerror = event => {
+    console.error('语音识别错误:', event.error);
+};
+</script>
+</body>
+</html>
