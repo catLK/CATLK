@@ -8,17 +8,46 @@
 <button id="btn-start-recording">开始录音</button>
 <button id="btn-stop-recording" disabled>停止录音</button>
 <audio controls></audio>
-<p id="transcript">转录文本将出现在这里：</p>
+<div id="transcript">转录文本将出现在这里：</div>
 <script>
 let audioContext;
 let mediaRecorder;
 let audioStream;
-let recognition;
 let transcriptCount = 0;
+
+const transcriptDiv = document.getElementById('transcript');
+
+function createRecognition() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'cmn-Hans-CN'; // 使用普通话
+    recognition.continuous = true;
+    recognition.interimResults = true; // 开启中间结果
+
+    recognition.onresult = event => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+        }
+        transcriptDiv.textContent = `${transcriptCount}: ${transcript}`; // 更新转录文本
+    };
+
+    recognition.onerror = event => {
+        console.error('语音识别错误:', event.error);
+    };
+
+    recognition.onend = () => {
+        // 处理结束后的操作
+        transcriptCount++;
+        recognition.start(); // 重新启动识别
+    };
+
+    return recognition;
+}
 
 document.getElementById('btn-start-recording').addEventListener('click', async () => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const input = audioContext.createMediaStreamSource(audioStream);
     mediaRecorder = new MediaRecorder(audioStream);
     mediaRecorder.start();
     
@@ -28,9 +57,7 @@ document.getElementById('btn-start-recording').addEventListener('click', async (
         document.querySelector('audio').src = audioUrl;
     };
 
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'cmn-Hans-CN'; // 使用普通话
-    recognition.continuous = true;
+    const recognition = createRecognition();
     recognition.start();
 
     document.getElementById('btn-start-recording').disabled = true;
@@ -41,23 +68,11 @@ document.getElementById('btn-stop-recording').addEventListener('click', () => {
     mediaRecorder.stop();
     audioStream.getTracks().forEach(track => track.stop());
     audioContext.close();
-    recognition.stop();
+    // 注意：我们不在这里停止 recognition，因为它将自动重新启动
 
     document.getElementById('btn-start-recording').disabled = false;
     document.getElementById('btn-stop-recording').disabled = true;
 });
-
-recognition.onresult = event => {
-    transcriptCount++;
-    const transcript = event.results[event.resultIndex][0].transcript;
-    const p = document.createElement('p');
-    p.textContent = `${transcriptCount}: ${transcript}`;
-    document.getElementById('transcript').appendChild(p);
-};
-
-recognition.onerror = event => {
-    console.error('语音识别错误:', event.error);
-};
 </script>
 </body>
 </html>
