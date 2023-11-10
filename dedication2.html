@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio Recorder for iOS with Web Audio API</title>
+</head>
+<body>
+
+<button id="startRecord">Start Recording</button>
+<button id="stopRecord" disabled>Stop Recording</button>
+<audio id="audioPlayback" controls></audio>
+
+<script>
+let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let audioInput = null,
+    realAudioInput = null,
+    inputPoint = null,
+    audioRecorder = null;
+
+function gotStream(stream) {
+    inputPoint = audioContext.createGain();
+
+    // Create an AudioNode from the stream.
+    realAudioInput = audioContext.createMediaStreamSource(stream);
+    audioInput = realAudioInput;
+    audioInput.connect(inputPoint);
+
+    audioRecorder = new Recorder(inputPoint);
+
+    document.getElementById('startRecord').disabled = true;
+    document.getElementById('stopRecord').disabled = false;
+}
+
+function startRecording() {
+    if (!audioRecorder) return;
+    audioRecorder.clear();
+    audioRecorder.record();
+}
+
+function stopRecording() {
+    audioRecorder.stop();
+    document.getElementById('startRecord').disabled = false;
+    document.getElementById('stopRecord').disabled = true;
+    audioRecorder.getBuffers(createDownloadLink);
+}
+
+function createDownloadLink(buffers) {
+    const audioBuffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
+    audioBuffer.getChannelData(0).set(buffers[0]);
+    audioBuffer.getChannelData(1).set(buffers[1]);
+    const blob = bufferToWave(audioBuffer, audioBuffer.length);
+    const url = URL.createObjectURL(blob);
+    document.getElementById('audioPlayback').src = url;
+}
+
+function bufferToWave(abuffer, len) {
+    const numOfChan = abuffer.numberOfChannels,
+          length = len * numOfChan * 2 + 44,
+          buffer = new ArrayBuffer(length),
+          view = new DataView(buffer),
+          channels = [], i, sample,
+          offset = 0,
+          pos = 0;
+
+    // write WAVE header
+    setUint32(0x46464952);                         // "RIFF"
+    setUint32(length - 8);                         // file length - 8
+    setUint32(0x45564157);                         // "WAVE"
+
+    setUint32(0x20746d66);                         // "fmt " chunk
+    setUint32(16);                                 // length = 16
+    setUint16(1);                                  // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(abuffer.sampleRate);
+    setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+    setUint16(numOfChan * 2);                      // block-align
+    setUint16(16);                                 // 16-bit (hardcoded in this demo)
+
+    setUint32(0x61746164);                         // "data" - chunk
+    setUint32(length - pos - 4);                   // chunk length
+
+    // write interleaved data
+    for(i = 0; i < abuffer.numberOfChannels; i++)
+        channels.push(abuffer.getChannelData(i));
+
+    while(pos < length) {
+        for(i = 0; i < numOfChan; i++) {           // interleave channels
+            sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+            view.setInt16(pos, sample, true);      // write 16-bit sample
+            pos += 2;
+        }
+        offset++                                   // next source sample
+    }
+
+    // create Blob
+    return new Blob([buffer], {type: "audio/wav"});
+
+    function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+    }
+
+    function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+    }
+}
+
+document.getElementById('startRecord').addEventListener('click', function() {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(gotStream);
+    startRecording();
+});
+
+document.getElementById('stopRecord').addEventListener('click', function() {
+    stopRecording();
+});
+</script>
+
+</body>
+</html>
