@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>语音转文本</title>
+</head>
+<body>
+    <button id="btn-start-recording">开始录音</button>
+    <button id="btn-stop-recording" disabled>停止录音</button>
+    <audio controls></audio>
+    <p id="transcript">转录文本将出现在这里</p>
+    <script>
+        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let mediaRecorder;
+        let audioStream;
+        let audioChunks = [];
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'cmn-Hans-CN'; // 使用普通话
+        recognition.continuous = true;
+
+        // 开始录音按钮
+        document.getElementById('btn-start-recording').addEventListener('click', async () => {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const input = audioContext.createMediaStreamSource(audioStream);
+            mediaRecorder = new MediaRecorder(audioStream);
+            mediaRecorder.start();
+            
+            mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+            });
+
+            // 开始语音识别
+            recognition.start();
+
+            document.getElementById('btn-start-recording').disabled = true;
+            document.getElementById('btn-stop-recording').disabled = false;
+        });
+
+        // 停止录音按钮
+        document.getElementById('btn-stop-recording').addEventListener('click', () => {
+            mediaRecorder.stop();
+            audioStream.getTracks().forEach(track => track.stop());
+            audioContext.close();
+
+            // 停止语音识别
+            recognition.stop();
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            document.querySelector('audio').src = audioUrl;
+
+            document.getElementById('btn-start-recording').disabled = false;
+            document.getElementById('btn-stop-recording').disabled = true;
+            audioChunks = [];
+        });
+
+        // 将语音转换为文本
+        recognition.onresult = function(event) {
+            const transcript = event.results[event.resultIndex][0].transcript;
+            document.getElementById('transcript').textContent += transcript;
+        };
+
+        // 语音识别错误处理
+        recognition.onerror = function(event) {
+            console.error('语音识别错误:', event.error);
+        };
+    </script>
+</body>
+</html>
